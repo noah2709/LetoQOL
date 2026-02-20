@@ -1,0 +1,26 @@
+## Interface: 120001
+## Title: |cFF00CCFFLetoQOL|r
+## Notes: Quality of Life improvements for World of Warcraft
+## Notes-deDE: Quality of Life Verbesserungen für World of Warcraft
+## Author: Leto
+## Version: 4.0.0
+## SavedVariables: LetoQOLDB
+## IconTexture: Interface\Icons\INV_Misc_Gear_01
+## X-Category: Interface Enhancements
+
+Locales\enUS.lua
+Locales\deDE.lua
+
+Core\Utils.lua
+Core\Core.lua
+Core\Config.lua
+
+Modules\CharacterPaneEnhancement.lua
+Modules\GatewayTracker.lua
+Modules\PetReminder.lua
+Modules\FocusInterrupt.lua
+Modules\AutoRoleAccept.lua
+Modules\NpcHelper.lua
+Modules\TeleportCompendium.lua
+Modules\HideTalkingHead.lua
+
