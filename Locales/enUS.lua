@@ -22,6 +22,18 @@ L["SHOW_DURABILITY"]            = "Show Durability % (per item)"
 L["SHOW_TOTAL_DURABILITY"]     = "Show Total Durability %"
 L["ITEM_LEVEL_LABEL"]           = "Item Level"
 
+-- Cursor Ring
+L["CURSOR_RING"]                 = "Cursor Ring"
+L["CURSOR_RING_DESC"]            = "A ring that follows the mouse. Does not intercept clicks (including right-click camera)."
+L["CURSOR_RING_COLOR"]           = "Ring Color"
+L["CURSOR_RING_OPACITY"]         = "Opacity"
+L["CURSOR_RING_RADIUS"]          = "Radius"
+L["CURSOR_RING_THICKNESS"]       = "Thickness"
+L["CURSOR_RING_GLOW"]            = "Glow"
+L["CURSOR_RING_GLOW_ALPHA"]      = "Glow brightness"
+L["CURSOR_RING_GLOW_SPREAD"]     = "Glow spread"
+L["CURSOR_RING_GLOW_THICKNESS"]  = "Glow thickness"
+
 -- Gateway Tracker
 L["GATEWAY_TRACKER"]            = "Gateway Tracker"
 L["SHOW_ONLY_IN_COMBAT"]        = "Show only in Combat"
