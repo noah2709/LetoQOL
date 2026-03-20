@@ -42,7 +42,7 @@ L["SHOW_ONLY_IN_GROUP"]          = "Nur in Gruppe / Schlachtzug"
 
 -- Focus Interrupt
 L["FOCUS_INTERRUPT"]             = "Focus Interrupt"
-L["FOCUS_INTERRUPT_DESC"]        = "Bei Ready Check wird dein Focus-Interrupt-Marker im Gruppenchat gesendet."
+L["FOCUS_INTERRUPT_DESC"]        = "Bei Ready Check wird dein Focus-Interrupt-Marker im Gruppenchat gesendet (nicht in Schlachtzügen)."
 L["ICON_PICKER"]                 = "Symbol Auswahl"
 L["PREVIEW"]                     = "Vorschau"
 L["AUTO_MARK_FOCUS"]             = "Focus markieren Button anzeigen"

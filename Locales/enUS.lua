@@ -40,7 +40,7 @@ L["SHOW_ONLY_IN_GROUP"]          = "Show only in Party / Raid"
 
 -- Focus Interrupt
 L["FOCUS_INTERRUPT"]             = "Focus Interrupt"
-L["FOCUS_INTERRUPT_DESC"]        = "On ready check, announces your focus interrupt marker in party chat."
+L["FOCUS_INTERRUPT_DESC"]        = "On ready check, announces your focus interrupt marker in party chat (not in raids)."
 L["ICON_PICKER"]                 = "Icon Picker"
 L["PREVIEW"]                     = "Preview"
 L["AUTO_MARK_FOCUS"]             = "Show Mark Focus Button"
