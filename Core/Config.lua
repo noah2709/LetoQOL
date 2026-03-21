@@ -393,7 +393,7 @@ local function CreateConfigFrame()
 
     local subtitle = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     subtitle:SetPoint("LEFT", title, "RIGHT", 8, 0)
-    subtitle:SetText("|cFF888888v4.0.0|r")
+    subtitle:SetText("|cFF888888v5.0.0|r")
 
     local closeBtn = CreateFrame("Button", nil, f, "UIPanelCloseButton")
     closeBtn:SetPoint("TOPRIGHT", -2, -2)

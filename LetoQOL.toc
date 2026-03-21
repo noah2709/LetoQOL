@@ -3,7 +3,7 @@
 ## Notes: Quality of Life improvements for World of Warcraft
 ## Notes-deDE: Quality of Life Verbesserungen für World of Warcraft
 ## Author: Leto
-## Version: 4.0.0
+## Version: 5.0.0
 ## SavedVariables: LetoQOLDB
 ## IconTexture: Interface\Icons\INV_Misc_Gear_01
 ## X-Category: Interface Enhancements
