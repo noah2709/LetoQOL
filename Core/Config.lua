@@ -330,6 +330,67 @@ addon.UI = {
 }
 
 ---------------------------------------------------------------------------
+-- Scrollable module settings (right panel)
+---------------------------------------------------------------------------
+local function UpdateSettingsScrollHeight(scrollFrame)
+    local child = scrollFrame and scrollFrame.scrollChild
+    if not child then return end
+
+    local viewH = math.max(scrollFrame:GetHeight() or 1, 1)
+    local sw = scrollFrame:GetWidth() or 520
+    local w = math.max(sw - 28, 200)
+    child:SetWidth(w)
+
+    local scTop = child:GetTop()
+    if not scTop then
+        child:SetHeight(viewH)
+        return
+    end
+
+    local maxDown = 0
+    local function consider(obj)
+        if not obj or not obj.GetBottom then return end
+        if obj.IsShown and not obj:IsShown() then return end
+        local b = obj:GetBottom()
+        if not b then return end
+        local down = scTop - b
+        if down > maxDown then maxDown = down end
+    end
+    local function walkSubtree(f)
+        if not f then return end
+        consider(f)
+        local kids = { f:GetChildren() }
+        for i = 1, #kids do
+            walkSubtree(kids[i])
+        end
+        local regs = { f:GetRegions() }
+        for i = 1, #regs do
+            consider(regs[i])
+        end
+    end
+
+    local tops = { child:GetChildren() }
+    for i = 1, #tops do
+        walkSubtree(tops[i])
+    end
+    local topRegs = { child:GetRegions() }
+    for i = 1, #topRegs do
+        consider(topRegs[i])
+    end
+
+    child:SetHeight(math.max(math.ceil(maxDown + 48), viewH))
+end
+
+local function DeferUpdateSettingsScroll(scrollFrame)
+    if not scrollFrame then return end
+    C_Timer.After(0, function()
+        if scrollFrame:IsShown() then
+            UpdateSettingsScrollHeight(scrollFrame)
+        end
+    end)
+end
+
+---------------------------------------------------------------------------
 -- Module selection (left-panel highlight + right-panel swap)
 ---------------------------------------------------------------------------
 local function SelectModule(moduleName)
@@ -345,6 +406,11 @@ local function SelectModule(moduleName)
     end
     for name, panel in pairs(contentPanels) do
         panel:SetShown(name == moduleName)
+    end
+    local sf = contentPanels[moduleName]
+    if sf then
+        sf:SetVerticalScroll(0)
+        DeferUpdateSettingsScroll(sf)
     end
 end
 
@@ -465,18 +531,32 @@ local function CreateConfigFrame()
 
         moduleButtons[name] = btn
 
-        -- Content panel (fills the right side)
-        local content = CreateFrame("Frame", nil, right)
-        content:SetPoint("TOPLEFT", 14, -14)
-        content:SetPoint("BOTTOMRIGHT", -14, 14)
-        content:Hide()
+        -- Scrollable content (fills inner right panel; avoids overflow on tall modules)
+        local scrollFrame = CreateFrame("ScrollFrame", nil, right, "UIPanelScrollFrameTemplate")
+        scrollFrame:SetPoint("TOPLEFT", 8, -8)
+        scrollFrame:SetPoint("BOTTOMRIGHT", -28, 8)
+
+        local scrollChild = CreateFrame("Frame", nil, scrollFrame)
+        scrollFrame:SetScrollChild(scrollChild)
+        scrollFrame.scrollChild = scrollChild
+        scrollFrame:Hide()
+
+        scrollFrame:SetScript("OnShow", function(self)
+            DeferUpdateSettingsScroll(self)
+        end)
 
         if mod.CreateSettingsPanel then
-            mod:CreateSettingsPanel(content)
+            mod:CreateSettingsPanel(scrollChild)
         end
 
-        contentPanels[name] = content
+        contentPanels[name] = scrollFrame
     end
+
+    f:SetScript("OnSizeChanged", function()
+        if selectedModule and contentPanels[selectedModule] then
+            DeferUpdateSettingsScroll(contentPanels[selectedModule])
+        end
+    end)
 
     -- Select the first module by default
     if firstName then SelectModule(firstName) end
@@ -495,7 +575,11 @@ end
 
 function addon:ToggleConfig()
     if not configFrame then CreateConfigFrame() end
-    configFrame:SetShown(not configFrame:IsShown())
+    local willShow = not configFrame:IsShown()
+    configFrame:SetShown(willShow)
+    if willShow and selectedModule and contentPanels[selectedModule] then
+        DeferUpdateSettingsScroll(contentPanels[selectedModule])
+    end
 end
 
 function addon:InitConfig()

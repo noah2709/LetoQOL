@@ -24,6 +24,18 @@ L["SHOW_DURABILITY"]            = "Haltbarkeit % anzeigen (pro Item)"
 L["SHOW_TOTAL_DURABILITY"]     = "Gesamt-Haltbarkeit % anzeigen"
 L["ITEM_LEVEL_LABEL"]           = "Gegenstandsstufe"
 
+-- Cursor Ring
+L["CURSOR_RING"]                 = "Cursor Ring"
+L["CURSOR_RING_DESC"]            = "Ein Ring folgt der Maus. Blockiert keine Klicks (auch nicht Rechtsklick-Kamera)."
+L["CURSOR_RING_COLOR"]           = "Ringfarbe"
+L["CURSOR_RING_OPACITY"]         = "Deckkraft"
+L["CURSOR_RING_RADIUS"]          = "Radius"
+L["CURSOR_RING_THICKNESS"]       = "Dicke"
+L["CURSOR_RING_GLOW"]            = "Leuchten"
+L["CURSOR_RING_GLOW_ALPHA"]      = "Leuchtstärke"
+L["CURSOR_RING_GLOW_SPREAD"]     = "Leuchten — Abstand"
+L["CURSOR_RING_GLOW_THICKNESS"]  = "Leuchten — Dicke"
+
 -- Gateway Tracker
 L["GATEWAY_TRACKER"]            = "Gateway Tracker"
 L["SHOW_ONLY_IN_COMBAT"]        = "Nur im Kampf anzeigen"
@@ -42,7 +54,7 @@ L["SHOW_ONLY_IN_GROUP"]          = "Nur in Gruppe / Schlachtzug"
 
 -- Focus Interrupt
 L["FOCUS_INTERRUPT"]             = "Focus Interrupt"
-L["FOCUS_INTERRUPT_DESC"]        = "Bei Ready Check wird dein Focus-Interrupt-Marker im Gruppenchat gesendet."
+L["FOCUS_INTERRUPT_DESC"]        = "Bei Ready Check wird dein Focus-Interrupt-Marker im Gruppenchat gesendet (nicht in Schlachtzügen)."
 L["ICON_PICKER"]                 = "Symbol Auswahl"
 L["PREVIEW"]                     = "Vorschau"
 L["AUTO_MARK_FOCUS"]             = "Focus markieren Button anzeigen"

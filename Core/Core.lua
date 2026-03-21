@@ -66,6 +66,17 @@ local defaults = {
     hideTalkingHead = {
         enabled = true,
     },
+    cursorRing = {
+        enabled        = true,
+        color          = { r = 0.25, g = 0.9, b = 1 },
+        alpha          = 1,
+        radius         = 18,
+        thickness      = 3,
+        glowEnabled    = true,
+        glowAlpha      = 0.4,
+        glowSpread     = 6,
+        glowThickness  = 6,
+    },
 }
 
 ---------------------------------------------------------------------------
