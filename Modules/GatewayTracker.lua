@@ -124,6 +124,10 @@ function module:CheckAndUpdate()
 
     local shouldShow = IsGatewayUsable()
 
+    if shouldShow and not IsInGroup() then
+        shouldShow = false
+    end
+
     if shouldShow and db.showOnlyInCombat then
         shouldShow = UnitAffectingCombat("player")
     end
@@ -150,6 +154,7 @@ function module:OnEnable()
     ef:RegisterEvent("PLAYER_REGEN_ENABLED")
     ef:RegisterEvent("SPELL_UPDATE_COOLDOWN")
     ef:RegisterEvent("UNIT_INVENTORY_CHANGED")
+    ef:RegisterEvent("GROUP_ROSTER_UPDATE")
     ef:SetScript("OnEvent", function()
         self:CheckAndUpdate()
     end)

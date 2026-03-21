@@ -16,6 +16,7 @@ Core\Core.lua
 Core\Config.lua
 
 Modules\CharacterPaneEnhancement.lua
+Modules\CursorRing.lua
 Modules\GatewayTracker.lua
 Modules\PetReminder.lua
 Modules\FocusInterrupt.lua

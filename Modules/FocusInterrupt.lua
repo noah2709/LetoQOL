@@ -36,6 +36,10 @@ local MARKERS = {
 -- Chat announcement (on ready check)
 ---------------------------------------------------------------------------
 local function GetChatChannel()
+    -- Party/dungeon groups only; never raid (avoids READY_CHECK spam in raids)
+    if IsInRaid() then
+        return nil
+    end
     if IsInGroup() then
         return "PARTY"
     end
@@ -190,7 +194,7 @@ function module:CreateSettingsPanel(parent)
     -- Description
     local desc = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     desc:SetPoint("TOPLEFT", 0, y)
-    desc:SetText(L["FOCUS_INTERRUPT_DESC"] or "On ready check, announces your focus interrupt marker in party chat.")
+    desc:SetText(L["FOCUS_INTERRUPT_DESC"] or "On ready check, announces your focus interrupt marker in party chat (not in raids).")
     desc:SetTextColor(0.7, 0.7, 0.7)
     desc:SetWidth(480)
     desc:SetWordWrap(true)
