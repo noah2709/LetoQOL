@@ -12,7 +12,7 @@ addon:RegisterModule("TeleportCompendium", module)
 ---------------------------------------------------------------------------
 -- Local state
 ---------------------------------------------------------------------------
-local teleportCategories = {}   -- { { name = "...", spells = { {spellID, name, icon}, ... } }, ... }
+local teleportCategories = {}   -- spells: { spellID, name, displayName, icon }
 local mapButton                 -- button on the World Map
 local compendiumPanel           -- the main panel frame
 local scrollFrame, scrollChild
@@ -32,6 +32,61 @@ local HOME_SPELLS = {
 }
 
 ---------------------------------------------------------------------------
+-- Display label from spell description (locale-specific phrasing).
+-- Falls back to spell name (Hearthstone, unknown wording, etc.)
+---------------------------------------------------------------------------
+-- Capture until sentence end. Do NOT use %n here — in Lua patterns that is NOT newline; it
+-- matches the letter "n", so names like "Operation: Mechagon" / "The Underrot" truncate early.
+local TELEPORT_DESC_PATTERNS = {
+    "Teleport to the entrance to ([^%.\n]+)",       -- enUS / enGB
+    "Teleportiert zum Eingang von ([^%.\n]+)",      -- deDE
+}
+
+local function DungeonNameFromSpellDescription(spellID)
+    if not spellID or not C_Spell or not C_Spell.GetSpellDescription then
+        return nil
+    end
+    local desc = C_Spell.GetSpellDescription(spellID)
+    if not desc or desc == "" then return nil end
+    -- Strip color codes and bold asterisks from description text
+    local plain = desc
+        :gsub("|c%x%x%x%x%x%x%x%x", "")
+        :gsub("|r", "")
+        :gsub("%*+", "")
+    for _, pattern in ipairs(TELEPORT_DESC_PATTERNS) do
+        local dungeon = plain:match(pattern)
+        if dungeon then
+            return strtrim(dungeon)
+        end
+    end
+    return nil
+end
+
+local function ResolveDisplayName(spellID, spellName)
+    return DungeonNameFromSpellDescription(spellID) or spellName
+end
+
+--- Remove duplicate flyout slots (same spell ID or same display label / name).
+local function DedupeSpellList(spells)
+    local idSeen, dispSeen = {}, {}
+    local out = {}
+    for _, s in ipairs(spells) do
+        if not idSeen[s.spellID] then
+            idSeen[s.spellID] = true
+            local d = strtrim(s.displayName or s.name or "")
+            local key = string.lower(d)
+            if key ~= "" and dispSeen[key] then
+                -- second spell id for same dungeon label
+            else
+                if key ~= "" then dispSeen[key] = true end
+                table.insert(out, s)
+            end
+        end
+    end
+    return out
+end
+
+---------------------------------------------------------------------------
 -- SCAN TELEPORTS
 ---------------------------------------------------------------------------
 local function ScanTeleports()
@@ -46,9 +101,10 @@ local function ScanTeleports()
             local info = C_Spell.GetSpellInfo(spellID)
             if info then
                 table.insert(homeSpells, {
-                    spellID = spellID,
-                    name    = info.name,
-                    icon    = info.iconID,
+                    spellID     = spellID,
+                    name        = info.name,
+                    displayName = ResolveDisplayName(spellID, info.name),
+                    icon        = info.iconID,
                 })
             end
         end
@@ -72,14 +128,18 @@ local function ScanTeleports()
                         local sInfo = C_Spell.GetSpellInfo(useID)
                         if sInfo then
                             table.insert(spells, {
-                                spellID = useID,
-                                name    = sInfo.name,
-                                icon    = sInfo.iconID,
+                                spellID     = useID,
+                                name        = sInfo.name,
+                                displayName = ResolveDisplayName(useID, sInfo.name),
+                                icon        = sInfo.iconID,
                             })
                         end
                     end
                 end
-                table.sort(spells, function(a, b) return a.name < b.name end)
+                spells = DedupeSpellList(spells)
+                table.sort(spells, function(a, b)
+                    return a.displayName < b.displayName
+                end)
                 if #spells > 0 then
                     table.insert(teleportCategories, { name = expansion, spells = spells })
                 end
@@ -103,9 +163,10 @@ local function ScanTeleports()
                         table.insert(teleportCategories, {
                             name   = expansion,
                             spells = { {
-                                spellID = itemInfo.spellID,
-                                name    = sInfo.name,
-                                icon    = sInfo.iconID,
+                                spellID     = itemInfo.spellID,
+                                name        = sInfo.name,
+                                displayName = ResolveDisplayName(itemInfo.spellID, sInfo.name),
+                                icon        = sInfo.iconID,
                             } },
                         })
                     end
@@ -180,6 +241,18 @@ local function CreateMapButton()
 end
 
 ---------------------------------------------------------------------------
+-- Scroll child width = viewport minus scrollbar (otherwise text is clipped on the right).
+---------------------------------------------------------------------------
+local function ApplyTeleportScrollInnerWidth()
+    if not scrollFrame or not scrollChild then return end
+    local width = scrollFrame:GetWidth()
+    if not width or width <= 0 then return end
+    local bar = scrollFrame.ScrollBar
+    local inner = width - (bar and bar.GetWidth and (bar:GetWidth() + 8) or 28)
+    scrollChild:SetWidth(math.max(inner, 80))
+end
+
+---------------------------------------------------------------------------
 -- CREATE COMPENDIUM PANEL
 ---------------------------------------------------------------------------
 local function CreatePanel()
@@ -228,14 +301,15 @@ local function CreatePanel()
     sc:SetHeight(1) -- resized in Populate
     sf:SetScrollChild(sc)
 
-    -- Store a ref so we can update width after layout
-    sf:SetScript("OnSizeChanged", function(self, w, h)
-        sc:SetWidth(w)
+    sf:SetScript("OnSizeChanged", function()
+        ApplyTeleportScrollInnerWidth()
     end)
 
     compendiumPanel = p
     scrollFrame     = sf
     scrollChild     = sc
+
+    ApplyTeleportScrollInnerWidth()
 
     p:Hide()
 end
@@ -250,20 +324,29 @@ local function PopulatePanel()
     -- Clean up old elements
     for _, elem in ipairs(uiElements) do
         if elem.Hide then elem:Hide() end
-        if elem.SetAttribute then
+        local b = elem._spellBtn
+        if b and b.SetAttribute then
+            b:SetAttribute("type", nil)
+            b:SetAttribute("spell", nil)
+        elseif elem.SetAttribute then
             elem:SetAttribute("type", nil)
             elem:SetAttribute("spell", nil)
         end
     end
     wipe(uiElements)
 
+    ApplyTeleportScrollInnerWidth()
+
     local y = 0
-    local contentWidth = scrollChild:GetWidth()
-    if contentWidth < 100 then contentWidth = 400 end
-    local COL_WIDTH   = math.floor(contentWidth / 2)
-    local ROW_HEIGHT  = 36
+    -- scrollChild width is set to exclude the scrollbar (see ApplyTeleportScrollInnerWidth).
+    local viewportW = scrollChild:GetWidth()
+    if viewportW < 60 then viewportW = 280 end
+    local btnW = math.max(viewportW - 8, 200)
+    local ROW_PAD     = 6
+    local MIN_ROW_H   = 36
     local ICON_SIZE   = 28
     local btnIndex    = 0
+    local textWidth   = math.max(btnW - ICON_SIZE - ROW_PAD * 3 - 16, 200)
 
     for _, cat in ipairs(teleportCategories) do
         -- Category header
@@ -284,41 +367,48 @@ local function PopulatePanel()
         table.insert(uiElements, sep)
         y = y - 8
 
-        -- Spell entries (two columns)
-        for i, spell in ipairs(cat.spells) do
+        -- Spell row: label is NOT a child of SecureActionButton (template clips/truncates text).
+        for _, spell in ipairs(cat.spells) do
             btnIndex = btnIndex + 1
-            local col = (i - 1) % 2
-            local row = math.floor((i - 1) / 2)
 
-            local btn = CreateFrame("Button", "LetoQOLTP" .. btnIndex,
-                                    scrollChild, "SecureActionButtonTemplate")
-            btn:SetSize(COL_WIDTH - 4, ROW_HEIGHT)
-            btn:SetPoint("TOPLEFT", 2 + col * COL_WIDTH, y - row * ROW_HEIGHT)
+            local row = CreateFrame("Frame", nil, scrollChild)
+            row:SetWidth(btnW)
+            row:SetPoint("TOPLEFT", 4, y)
+
+            local btn = CreateFrame("Button", "LetoQOLTP" .. btnIndex, row,
+                                    "SecureActionButtonTemplate")
+            btn:SetAllPoints(row)
             btn:RegisterForClicks("AnyUp", "AnyDown")
             btn:SetAttribute("type", "spell")
-            btn:SetAttribute("spell", spell.name)
+            btn:SetAttribute("spell", spell.spellID)
 
-            -- Highlight
             local hlTex = btn:CreateTexture(nil, "HIGHLIGHT")
             hlTex:SetAllPoints()
             hlTex:SetColorTexture(1, 1, 1, 0.08)
 
-            -- Icon
             local iconTex = btn:CreateTexture(nil, "ARTWORK")
             iconTex:SetSize(ICON_SIZE, ICON_SIZE)
-            iconTex:SetPoint("LEFT", 4, 0)
             iconTex:SetTexture(spell.icon)
             iconTex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
-            -- Name
-            local nameText = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            nameText:SetPoint("LEFT", iconTex, "RIGHT", 6, 0)
-            nameText:SetPoint("RIGHT", -4, 0)
-            nameText:SetText(spell.name)
+            -- FontString on row so it paints above the button and is not clipped by secure template.
+            local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            nameText:SetWidth(textWidth)
             nameText:SetJustifyH("LEFT")
-            nameText:SetWordWrap(false)
+            nameText:SetJustifyV("TOP")
+            nameText:SetWordWrap(true)
+            nameText:SetPoint("TOPLEFT", row, "TOPLEFT", ROW_PAD + ICON_SIZE + ROW_PAD, -ROW_PAD)
+            nameText:SetText(spell.displayName)
 
-            -- Tooltip
+            local textH = nameText:GetStringHeight()
+            local rowH = math.max(MIN_ROW_H, textH + ROW_PAD * 2, ICON_SIZE + ROW_PAD * 2)
+            row:SetHeight(rowH)
+
+            local topPad = ROW_PAD + math.max(0, (rowH - math.max(ICON_SIZE, textH)) / 2)
+            iconTex:SetPoint("TOPLEFT", btn, "TOPLEFT", ROW_PAD, -topPad)
+            nameText:ClearAllPoints()
+            nameText:SetPoint("TOPLEFT", row, "TOPLEFT", ROW_PAD + ICON_SIZE + ROW_PAD, -topPad)
+
             btn:SetScript("OnEnter", function(self)
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 GameTooltip:SetSpellByID(spell.spellID)
@@ -326,11 +416,12 @@ local function PopulatePanel()
             end)
             btn:SetScript("OnLeave", GameTooltip_Hide)
 
-            table.insert(uiElements, btn)
+            row._spellBtn = btn
+            table.insert(uiElements, row)
+            y = y - rowH - 4
         end
 
-        local numRows = math.ceil(#cat.spells / 2)
-        y = y - numRows * ROW_HEIGHT - 16
+        y = y - 12
     end
 
     scrollChild:SetHeight(math.abs(y) + 20)
@@ -352,6 +443,12 @@ TogglePanel = function()
         if panelDirty then PopulatePanel() end
         if QuestMapFrame then QuestMapFrame:Hide() end
         compendiumPanel:Show()
+        -- First layout pass often runs with width 0; repopulate next frame for correct wrap/row height.
+        C_Timer.After(0, function()
+            if compendiumPanel and compendiumPanel:IsShown() and not InCombatLockdown() then
+                PopulatePanel()
+            end
+        end)
     end
 end
 
