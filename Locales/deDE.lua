@@ -83,7 +83,7 @@ L["NO_JUNK"]                     = "Kein Ramsch zum Verkaufen."
 
 -- Teleport Compendium
 L["TELEPORT_COMPENDIUM"]         = "Teleport-Kompendium"
-L["TELEPORT_COMPENDIUM_DESC"]    = "Fügt einen Teleport-Kompendium Tab zur Weltkarte hinzu mit allen Hero's Path Teleports."
+L["TELEPORT_COMPENDIUM_DESC"]    = "Fügt einen Teleport-Kompendium-Tab zur Weltkarte hinzu mit allen Teleports aus „Pfad des Helden“."
 
 -- Hide Talking Head
 L["HIDE_TALKING_HEAD"]           = "Talking Head ausblenden"

@@ -39,8 +39,60 @@ local HOME_SPELLS = {
 -- matches the letter "n", so names like "Operation: Mechagon" / "The Underrot" truncate early.
 local TELEPORT_DESC_PATTERNS = {
     "Teleport to the entrance to ([^%.\n]+)",       -- enUS / enGB
-    "Teleportiert zum Eingang von ([^%.\n]+)",      -- deDE
 }
+
+-- deDE: Blizzard uses "von", "der", or "des" before the instance name (grammatical gender).
+-- Lua patterns have no alternation: (von|der|des) matches the literal characters, not a choice.
+-- Strip prepositions/articles with plain prefix checks instead.
+local DE_TELEPORT_PREFIX = "Teleportiert zum Eingang "
+
+local function StripGermanArticle(text, articles)
+    for _, article in ipairs(articles) do
+        if text:sub(1, #article + 1) == article .. " " then
+            return strtrim(text:sub(#article + 2))
+        end
+    end
+    return text
+end
+
+local function DungeonNameFromGermanDescription(plain)
+    local pos = plain:find(DE_TELEPORT_PREFIX, 1, true)
+    if not pos then return nil end
+
+    local tail = plain:sub(pos + #DE_TELEPORT_PREFIX)
+
+    local dotPos = tail:find("%.")
+    local rawName = dotPos and tail:sub(1, dotPos - 1) or tail
+    rawName = strtrim(rawName)
+
+    local name = StripGermanArticle(rawName, { "von", "der", "des", "dem", "den" })
+    name = StripGermanArticle(name, { "der", "die", "das", "den", "dem", "des" })
+
+    return name ~= "" and name or nil
+end
+
+-- Flyout / spellbook titles are localized (en: "Hero's Path: …", de: "Pfad des Helden: …").
+local HERO_PATH_TITLE_MARKERS = {
+    "Hero's Path",
+    "Pfad des Helden",
+}
+
+--- @return string|nil expansionCategoryName  nil if name is not a Hero's Path flyout/spell title
+local function HeroPathCategoryFromTitle(name)
+    if not name or name == "" then return nil end
+    for _, marker in ipairs(HERO_PATH_TITLE_MARKERS) do
+        local pos = name:find(marker, 1, true)
+        if pos then
+            local tail = name:sub(pos + #marker)
+            local rest = tail:match("^:%s*(.+)$")
+            if rest and strtrim(rest) ~= "" then
+                return strtrim(rest)
+            end
+            return name
+        end
+    end
+    return nil
+end
 
 local function DungeonNameFromSpellDescription(spellID)
     if not spellID or not C_Spell or not C_Spell.GetSpellDescription then
@@ -53,11 +105,20 @@ local function DungeonNameFromSpellDescription(spellID)
         :gsub("|c%x%x%x%x%x%x%x%x", "")
         :gsub("|r", "")
         :gsub("%*+", "")
+    -- WoW embeds |n / |N as line breaks in API text (not always real \n).
+    plain = plain:gsub("|n", " "):gsub("|N", " ")
+    -- Collapse real newlines and duplicate spaces so parsing sees one continuous sentence.
+    plain = plain:gsub("[\r\n]+", " "):gsub("%s+", " ")
+    plain = strtrim(plain)
     for _, pattern in ipairs(TELEPORT_DESC_PATTERNS) do
         local dungeon = plain:match(pattern)
         if dungeon then
             return strtrim(dungeon)
         end
+    end
+    local deDungeon = DungeonNameFromGermanDescription(plain)
+    if deDungeon then
+        return deDungeon
     end
     return nil
 end
@@ -114,8 +175,8 @@ local function ScanTeleports()
     local seen = {}
     for flyoutID = 1, 500 do
         local ok, name, desc, numSlots, isKnown = pcall(GetFlyoutInfo, flyoutID)
-        if ok and name and isKnown and name:find("Hero's Path") then
-            local expansion = name:match("Hero's Path:%s*(.+)") or name
+        local expansion = ok and name and HeroPathCategoryFromTitle(name) or nil
+        if ok and name and isKnown and expansion then
             if not seen[expansion] then
                 seen[expansion] = true
                 local spells = {}
@@ -156,8 +217,8 @@ local function ScanTeleports()
             if ok2 and itemInfo and itemInfo.spellID
                and itemInfo.itemType == Enum.SpellBookItemType.Spell then
                 local sInfo = C_Spell.GetSpellInfo(itemInfo.spellID)
-                if sInfo and sInfo.name and sInfo.name:find("Hero's Path") then
-                    local expansion = sInfo.name:match("Hero's Path:%s*(.+)") or sInfo.name
+                local expansion = sInfo and sInfo.name and HeroPathCategoryFromTitle(sInfo.name) or nil
+                if expansion then
                     if not seen[expansion] then
                         seen[expansion] = true
                         table.insert(teleportCategories, {
